@@ -4,6 +4,7 @@ from random import random, randint, seed
 
 MIN_DEPTH = 2  # minimal initial random tree depth
 MAX_DEPTH = 15  # maximal initial random tree depth
+PROB_MUTATION = 0.2  # per-node mutation probability
 
 # seed(123456)
 
@@ -121,7 +122,7 @@ class Tree:
         else:
             return self.parent
 
-    def add_random_function(self, parent, arg_index):
+    def add_random_function(self, parent, arg_index, pref_type=None):
         # FUNCTIONS = [ ..., function, ... ] <- parent
         # FUNCTIONS_PARAMS_TYPE = [ ..., [ ..., type_2, ... ], ... ] <- parent
         # FUNCTIONS_RETURN_Type = [ ..., function, ... ] <- random_function
@@ -135,8 +136,12 @@ class Tree:
                 allowed_funcs_index = indexes_of_in(arg_type, FUNCTIONS_RETURNS_TYPE)
                 self.parent = FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
         else:
-            # in case of root
-            self.parent = FUNCTIONS[randint(0, len(FUNCTIONS) - 1)]
+            if pref_type is not None:
+                allowed_funcs_index = indexes_of_in(pref_type, FUNCTIONS_RETURNS_TYPE)
+                self.parent = FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
+            else:
+                # in case of root
+                self.parent = FUNCTIONS[randint(0, len(FUNCTIONS) - 1)]
 
     def add_random_terminal(self, parent, arg_index):
         func_index = FUNCTIONS.index(parent)
@@ -148,28 +153,46 @@ class Tree:
             allowed_terminal_index = indexes_of_in(arg_type, TERMINALS_TYPE)
             self.parent = TERMINALS[allowed_terminal_index[randint(0, len(allowed_terminal_index) - 1)]]
 
-    def random_tree(self, grow, max_depth, depth=0, parent=None, arg_index=0):
+    def random_tree(self, grow, max_depth, depth=0, parent=None, arg_index=0, pref_type=None):
         if depth < MIN_DEPTH or (depth < max_depth and not grow):
-            self.add_random_function(parent, arg_index)
+            self.add_random_function(parent, arg_index, pref_type)
         elif depth >= max_depth:
             self.add_random_terminal(parent, arg_index)
         else:  # intermediate depth, grow
             if random() > 0.5:
                 self.add_random_terminal(parent, arg_index)
             else:
-                self.add_random_function(parent, arg_index)
+                self.add_random_function(parent, arg_index, pref_type)
+
         if self.parent in FUNCTIONS:
             parameter_types = get_parameter_types(self.parent)
             parameters_number = len(parameter_types) - 1
             self.children = []
             for i in range(parameters_number):
                 tree = Tree()
-                tree.random_tree(grow, max_depth, depth=depth + 1, parent=self.parent, arg_index=i)
+                tree.random_tree(grow, max_depth, depth=depth + 1, parent=self.parent, arg_index=i, pref_type=pref_type)
                 self.children.append(tree)
 
+    def mutation(self):
+        if random() > PROB_MUTATION:
+            if random() >= 0.5:
+                if self.parent in FUNCTIONS:
+                    func_index = indexes_of_in(self.parent, FUNCTIONS)
+                    func_ret_type = FUNCTIONS_RETURNS_TYPE[func_index[0]]
+                    self.random_tree(grow=True, max_depth=2, pref_type=func_ret_type)
+            else:
+                if self.children:
+                    arg_index = randint(0, len(self.children)-1)
+                    self.children[arg_index].mutation()
+                else:
+                    self.mutation()
 
-tree = Tree()
-tree.random_tree(True, 15)
+
+tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(5), Tree(10)]), Tree(False), Tree(True)])
+tree.print()
+tree.mutation()
+# tree = Tree()
+# tree.random_tree(True, 15, pref_type=bool)
 
 tree.print()
 print(tree.eval(10))
