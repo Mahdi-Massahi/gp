@@ -4,14 +4,16 @@ from random import random, randint, seed
 from copy import deepcopy
 from statistics import mean
 import csv
+import matplotlib.pyplot as plt
+import numpy as np
 
 POP_SIZE = 100  # population size
 MIN_DEPTH = 3  # minimal initial random tree depth
-MAX_DEPTH = 5  # maximal initial random tree depth
-PROB_MUTATION = 0.9  # per-node mutation probability
-XO_RATE = 0.3  # crossover rate
-TOURNAMENT_SIZE = 10  # size of tournament for tournament selection
-GENERATIONS = 1000  # maximal number of generations to run evolution
+MAX_DEPTH = 6  # maximal initial random tree depth
+PROB_MUTATION = 0.95  # per-node mutation probability
+XO_RATE = 0.5  # crossover rate
+TOURNAMENT_SIZE = 50  # size of tournament for tournament selection
+GENERATIONS = 5000  # maximal number of generations to run evolution
 
 # seed(123456)
 
@@ -22,6 +24,7 @@ def mul(x: float, y: float) -> float: return x * y
 def div(x: float, y: float) -> float: return x/y if y != 0.0 else 1.0
 def sin(x: float) -> float: return math.sin(x)
 def cos(x: float) -> float: return math.cos(x)
+def log(x: float) -> float: return math.log(x) if x > 0 else 0
 def if_else_b(cond: bool, on_true: bool, on_false: bool) -> bool: return on_true if cond else on_false
 def if_else_f(cond: bool, on_true: float, on_false: float) -> float: return on_true if cond else on_false
 def is_less_than(x: float, y: float) -> bool: return x < y
@@ -46,7 +49,7 @@ def power(x: float, p: float) -> float:
 
 
 FUNCTIONS = [add, sub, mul, div,
-             sin, cos, power, exp,
+             sin, cos, power, exp, log,
              if_else_b, if_else_f, or_b, and_b,
              is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal]
 
@@ -320,12 +323,12 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    return exp(sin(2*x)) + power(math.e, x/2)
+    return x**5 + 3*x
 
 
 def generate_dataset():  # generate 101 data points from target_func
     dataset = []
-    for x in range(-100, 101, 2):
+    for x in range(100, 101, 2):
         x /= 10
         dataset.append([x, target_func(x)])
     return dataset
@@ -349,6 +352,9 @@ def main():
     best_of_run_gen = 0
     fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
 
+    bests = [0]
+    means = [0]
+
     # go evolution!
     for gen in range(GENERATIONS):
         nextgen_population = []
@@ -367,6 +373,15 @@ def main():
         print("________________________")
         print("Gen no.:", gen, ", Best:", round(max(fitnesses), 3), ", Mean:", round(mean(fitnesses), 3), ", Best sol.:")
         best_of_run.print()
+
+        bests.append(best_of_run_f)
+        means.append(mean(fitnesses))
+
+        plt.ylim(0, 1)
+        plt.plot(np.array(bests), color='r')
+        plt.plot(np.array(means), color='b', linestyle='dotted')
+        plt.pause(0.1)
+
         if best_of_run_f == 1:
             print("Done")
             break
