@@ -5,6 +5,7 @@ from random import random, randint, seed
 MIN_DEPTH = 2  # minimal initial random tree depth
 MAX_DEPTH = 15  # maximal initial random tree depth
 PROB_MUTATION = 0.2  # per-node mutation probability
+XO_RATE = 1  # crossover rate
 
 # seed(123456)
 
@@ -73,7 +74,8 @@ def indexes_of_in(item, space: list):
     while start <= length:
         try:
             index = space.index(item, start)
-            positions.append(index)
+            if type(space[index]) == type(item):
+                positions.append(index)
             start = index + 1
 
         except ValueError:
@@ -98,14 +100,14 @@ class Tree:
             return str(self.parent)
 
     def print(self):
-        print(self.__tostring())
+        print(self.tostring())
 
-    def __tostring(self):
+    def tostring(self):
         if self.parent in FUNCTIONS:
             parameters = ""
             if self.children:
                 for child in self.children:
-                    parameters += ", " + child.__tostring()
+                    parameters += ", " + child.tostring()
                 parameters = parameters[2:len(parameters)]
             return self.node_label() + "(" + parameters + ")"
         else:
@@ -187,13 +189,106 @@ class Tree:
                 else:
                     self.mutation()
 
+    def type(self):
+        if self.parent in FUNCTIONS:
+            return FUNCTIONS_RETURNS_TYPE[indexes_of_in(self.parent, FUNCTIONS)[0]]
+        else:
+            return TERMINALS_TYPE[indexes_of_in(self.parent, TERMINALS)[0]]
 
-tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(5), Tree(10)]), Tree(False), Tree(True)])
-tree.print()
-tree.mutation()
-# tree = Tree()
-# tree.random_tree(True, 15, pref_type=bool)
+    def crossover(self, other):
+        if random() < XO_RATE:
+            second = other.scan_tree([randint(2, other.size()+1)])
+            positions = []
+            self.search_for_matching_types(positions, second.type())
+            cross_point = positions[randint(0, len(positions)-1)]
+            self.cross(second, cross_point)
 
+    def scan_tree(self, count):
+        count[0] -= 1
+        if count[0] <= 1:
+            return self.build_subtree()
+        else:
+            ret = None
+            if self.children:
+                for c in range(len(self.children)):
+                    if self.children[c] and count[0] > 1:
+                        ret = self.children[c].scan_tree(count)
+            return ret
+
+    def search_for_matching_types(self, positions, sub_type, id_list=[0]):
+        if self.parent in TERMINALS:
+            _id = id_list[-1]+1
+            id_list.append(_id)
+            if self.type() == sub_type:
+                positions.append(_id)
+            return positions
+        else:
+            _id = id_list[-1]+1
+            id_list.append(_id)
+            if self.type() == sub_type:
+                positions.append(_id)
+            if self.children:
+                for child in self.children:
+                    child.search_for_matching_types(positions, sub_type, id_list)
+
+    def cross(self, sub_tree, position, id_list=[0]):
+        if self.parent in TERMINALS:
+            _id = id_list[-1] + 1
+            id_list.append(_id)
+            if position == _id:
+                self.parent = sub_tree.parent
+                if sub_tree.children:
+                    self.children = sub_tree.children.copy()
+        else:
+            _id = id_list[-1] + 1
+            id_list.append(_id)
+            if position == _id:
+                self.parent = sub_tree.parent
+                if sub_tree.children:
+                    self.children = sub_tree.children.copy()
+            if self.children:
+                for child in self.children:
+                    child.cross(sub_tree, position, id_list=id_list)
+
+    def build_subtree(self):
+        t = Tree()
+        t.parent = self.parent
+        if self.children:
+            t.children = self.children.copy()
+        else:
+            t.children = None
+        return t
+
+    def size(self):
+        if self.parent in TERMINALS:
+            return 1
+        else:
+            if self.children:
+                s = 1
+                for child in self.children:
+                    s += child.size()
+                return s
+            else:
+                return 1
+
+
+tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(2.0), Tree(-1.0)]), Tree(False), Tree(True)])
 tree.print()
-print(tree.eval(10))
+print("Result\t", tree.eval(10))
+print("Size\t", tree.size())
+
+print()
+
+tree2 = Tree()
+tree2.random_tree(True, 15, pref_type=bool)
+tree2.print()
+print("Result\t", tree2.eval(10))
+print("Size\t", tree2.size())
+
+print()
+
+tree.crossover(tree2)
+tree.print()
+print("Result\t", tree.eval(10))
+print("Size\t", tree.size())
 
