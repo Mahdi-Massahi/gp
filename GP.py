@@ -1,11 +1,16 @@
 import math
 import inspect
 from random import random, randint, seed
+from copy import deepcopy
+from statistics import mean
 
-MIN_DEPTH = 2  # minimal initial random tree depth
-MAX_DEPTH = 15  # maximal initial random tree depth
-PROB_MUTATION = 0.2  # per-node mutation probability
-XO_RATE = 1  # crossover rate
+POP_SIZE = 100  # population size
+MIN_DEPTH = 3  # minimal initial random tree depth
+MAX_DEPTH = 5  # maximal initial random tree depth
+PROB_MUTATION = 0.1  # per-node mutation probability
+XO_RATE = 0.9  # crossover rate
+TOURNAMENT_SIZE = 10  # size of tournament for tournament selection
+GENERATIONS = 1000  # maximal number of generations to run evolution
 
 # seed(123456)
 
@@ -13,7 +18,7 @@ XO_RATE = 1  # crossover rate
 def add(x: float, y: float) -> float: return x + y
 def sub(x: float, y: float) -> float: return x - y
 def mul(x: float, y: float) -> float: return x * y
-def div(x: float, y: float) -> float: return x/y if y != 0 else 1
+def div(x: float, y: float) -> float: return x/y if y != 0.0 else 1.0
 def sin(x: float) -> float: return math.sin(x)
 def cos(x: float) -> float: return math.cos(x)
 def if_else_b(cond: bool, on_true: bool, on_false: bool) -> bool: return on_true if cond else on_false
@@ -22,16 +27,28 @@ def is_less_than(x: float, y: float) -> bool: return x < y
 def is_less_than_or_equal(x: float, y: float) -> bool: return x <= y
 def is_grater_than(x: float, y: float) -> bool: return x > y
 def is_grater_than_or_equal(x: float, y: float) -> bool: return x >= y
-def power(x: float, p: float) -> float: return (x**p).real if x != 0 else 0
-def exp(x: float) -> float: return math.exp(x)
 def or_b(x: bool, y: bool) -> bool: return x or y
 def and_b(x: bool, y: bool) -> bool: return x or y
+def exp(x: float) -> float:
+    try:
+        return math.exp(x)
+    except OverflowError:
+        return 10**10
+def power(x: float, p: float) -> float:
+    if x != 0:
+        try:
+            return (x**p).real
+        except OverflowError:
+            return 10**10
+    else:
+        return 0
 
 
 FUNCTIONS = [add, sub, mul, div,
              sin, cos, power, exp,
              if_else_b, if_else_f, or_b, and_b,
              is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal]
+
 VARIABLES_TUPLE = [('x', float)]
 VARIABLES = []
 TERMINALS = [-2.0, -1.0, 0.0, 1.0, 2.0, math.pi, math.e, True, False]
@@ -116,9 +133,11 @@ class Tree:
     def eval(self, x=0):
         if self.parent in FUNCTIONS:
             children_result = []
-            for child in self.children:
-                children_result.append(child.eval(x))
-            return self.parent(*children_result)
+            if self.children:
+                for child in self.children:
+                    res = child.eval(x)
+                    children_result.append(res)
+                return self.parent(*children_result)
         if self.parent == 'x':
             return x
         else:
@@ -200,8 +219,12 @@ class Tree:
             second = other.scan_tree([randint(2, other.size()+1)])
             positions = []
             self.search_for_matching_types(positions, second.type())
-            cross_point = positions[randint(0, len(positions)-1)]
-            self.cross(second, cross_point)
+            if len(positions) > 1:
+                cross_point = positions[randint(0, len(positions)-1)]
+                self.cross(second, cross_point)
+            elif len(positions) == 1:
+                cross_point = positions[0]
+                self.cross(second, cross_point)
 
     def scan_tree(self, count):
         count[0] -= 1
@@ -272,23 +295,97 @@ class Tree:
                 return 1
 
 
-tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(2.0), Tree(-1.0)]), Tree(False), Tree(True)])
-tree.print()
-print("Result\t", tree.eval(10))
-print("Size\t", tree.size())
+def init_population(output_type: type):  # ramped half-and-half
+    pop = []
+    for i in range(int(POP_SIZE / 2)):
+        t = Tree()
+        t.random_tree(grow=True, max_depth=randint(3, MAX_DEPTH), pref_type=output_type)  # grow
+        pop.append(t)
+    for i in range(int(POP_SIZE / 2)):
+        t = Tree()
+        t.random_tree(grow=False, max_depth=randint(3, MAX_DEPTH), pref_type=output_type)  # full
+        pop.append(t)
+    return pop
 
-print()
 
-tree2 = Tree()
-tree2.random_tree(True, 15, pref_type=bool)
-tree2.print()
-print("Result\t", tree2.eval(10))
-print("Size\t", tree2.size())
+def selection(population, fitnesses):  # select one individual using tournament selection
+    tournament = [randint(0, len(population) - 1) for i in range(TOURNAMENT_SIZE)]  # select tournament contenders
+    tournament_fitnesses = [fitnesses[tournament[i]] for i in range(TOURNAMENT_SIZE)]
+    return deepcopy(population[tournament[tournament_fitnesses.index(max(tournament_fitnesses))]])
 
-print()
 
-tree.crossover(tree2)
-tree.print()
-print("Result\t", tree.eval(10))
-print("Size\t", tree.size())
+def fitness(individual, dataset):  # inverse mean absolute error over dataset normalized to [0,1]
+    return 1 / (1 + mean([abs(individual.eval(ds[0]) - ds[1]) for ds in dataset]))
 
+
+def target_func(x):
+    if x > 0:
+        return exp(sin(2*x))
+    else:
+        return x ** 2
+
+
+def generate_dataset():  # generate 101 data points from target_func
+    dataset = []
+    for x in range(-100, 101, 2):
+        x /= 10
+        dataset.append([x, target_func(x)])
+    return dataset
+
+# tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(2.0), Tree(-1.0)]), Tree(False), Tree(True)])
+# tree.print()
+# print("Result\t", tree.eval(10))
+# print("Size\t", tree.size())
+#
+# print()
+#
+# tree2 = Tree()
+# tree2.random_tree(True, 15, pref_type=bool)
+# tree2.print()
+# print("Result\t", tree2.eval(10))
+# print("Size\t", tree2.size())
+#
+# print()
+#
+# tree.crossover(tree2)
+# tree.print()
+# print("Result\t", tree.eval(10))
+# print("Size\t", tree.size())
+#
+
+
+# init stuff
+seed()  # init internal state of random number generator
+dataset = generate_dataset()
+population = init_population(float)
+best_of_run = None
+best_of_run_f = 0
+best_of_run_gen = 0
+fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
+
+# go evolution!
+for gen in range(GENERATIONS):
+    nextgen_population = []
+    for i in range(POP_SIZE):
+        parent1 = selection(population, fitnesses)
+        parent2 = selection(population, fitnesses)
+        parent1.crossover(parent2)
+        parent1.mutation()
+        nextgen_population.append(parent1)
+    population = nextgen_population
+    fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
+    # if max(fitnesses) > best_of_run_f:
+    best_of_run_f = max(fitnesses)
+    best_of_run_gen = gen
+    best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+    print("________________________")
+    print("Gen no.:", gen, ", Best:", round(max(fitnesses), 3), ", Mean:", round(mean(fitnesses), 3), ", Best sol.:")
+    best_of_run.print()
+    if best_of_run_f == 1:
+        print("Done")
+        break
+
+print("\n\n_________________________________________________\n"
+      "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
+      " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
+best_of_run.print()
