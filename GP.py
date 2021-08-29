@@ -3,12 +3,13 @@ import inspect
 from random import random, randint, seed
 from copy import deepcopy
 from statistics import mean
+import csv
 
 POP_SIZE = 100  # population size
 MIN_DEPTH = 3  # minimal initial random tree depth
 MAX_DEPTH = 5  # maximal initial random tree depth
 PROB_MUTATION = 0.9  # per-node mutation probability
-XO_RATE = 0.2  # crossover rate
+XO_RATE = 0.3  # crossover rate
 TOURNAMENT_SIZE = 10  # size of tournament for tournament selection
 GENERATIONS = 1000  # maximal number of generations to run evolution
 
@@ -309,7 +310,7 @@ def init_population(output_type: type):  # ramped half-and-half
 
 
 def selection(population, fitnesses):  # select one individual using tournament selection
-    tournament = [randint(0, len(population) - 1) for i in range(TOURNAMENT_SIZE)]  # select tournament contenders
+    tournament = [randint(0, len(population) - 1) for i in range(TOURNAMENT_SIZE)]
     tournament_fitnesses = [fitnesses[tournament[i]] for i in range(TOURNAMENT_SIZE)]
     return deepcopy(population[tournament[tournament_fitnesses.index(max(tournament_fitnesses))]])
 
@@ -319,10 +320,7 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    if x > 0:
-        return exp(sin(2*x))
-    else:
-        return x ** 2
+    return exp(sin(2*x)) + power(math.e, x/2)
 
 
 def generate_dataset():  # generate 101 data points from target_func
@@ -333,8 +331,18 @@ def generate_dataset():  # generate 101 data points from target_func
     return dataset
 
 
+def load_database(path):
+    data = []
+    with open('data.csv', newline='\n') as csvfile:
+        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in spamreader:
+            data.append([float(row[0]), float(row[1])])
+    return data
+
+
 def main():
     dataset = generate_dataset()
+    # dataset = load_database("data.csv")
     population = init_population(float)
     best_of_run = None
     best_of_run_f = 0
