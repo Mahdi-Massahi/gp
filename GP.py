@@ -7,8 +7,8 @@ from statistics import mean
 POP_SIZE = 100  # population size
 MIN_DEPTH = 3  # minimal initial random tree depth
 MAX_DEPTH = 5  # maximal initial random tree depth
-PROB_MUTATION = 0.1  # per-node mutation probability
-XO_RATE = 0.9  # crossover rate
+PROB_MUTATION = 0.9  # per-node mutation probability
+XO_RATE = 0.2  # crossover rate
 TOURNAMENT_SIZE = 10  # size of tournament for tournament selection
 GENERATIONS = 1000  # maximal number of generations to run evolution
 
@@ -195,7 +195,7 @@ class Tree:
                 self.children.append(tree)
 
     def mutation(self):
-        if random() > PROB_MUTATION:
+        if random() < PROB_MUTATION:
             if random() >= 0.5:
                 if self.parent in FUNCTIONS:
                     func_index = indexes_of_in(self.parent, FUNCTIONS)
@@ -332,60 +332,43 @@ def generate_dataset():  # generate 101 data points from target_func
         dataset.append([x, target_func(x)])
     return dataset
 
-# tree = Tree(if_else_b, [Tree(is_grater_than_or_equal, [Tree(2.0), Tree(-1.0)]), Tree(False), Tree(True)])
-# tree.print()
-# print("Result\t", tree.eval(10))
-# print("Size\t", tree.size())
-#
-# print()
-#
-# tree2 = Tree()
-# tree2.random_tree(True, 15, pref_type=bool)
-# tree2.print()
-# print("Result\t", tree2.eval(10))
-# print("Size\t", tree2.size())
-#
-# print()
-#
-# tree.crossover(tree2)
-# tree.print()
-# print("Result\t", tree.eval(10))
-# print("Size\t", tree.size())
-#
 
-
-# init stuff
-seed()  # init internal state of random number generator
-dataset = generate_dataset()
-population = init_population(float)
-best_of_run = None
-best_of_run_f = 0
-best_of_run_gen = 0
-fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
-
-# go evolution!
-for gen in range(GENERATIONS):
-    nextgen_population = []
-    for i in range(POP_SIZE):
-        parent1 = selection(population, fitnesses)
-        parent2 = selection(population, fitnesses)
-        parent1.crossover(parent2)
-        parent1.mutation()
-        nextgen_population.append(parent1)
-    population = nextgen_population
+def main():
+    dataset = generate_dataset()
+    population = init_population(float)
+    best_of_run = None
+    best_of_run_f = 0
+    best_of_run_gen = 0
     fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
-    # if max(fitnesses) > best_of_run_f:
-    best_of_run_f = max(fitnesses)
-    best_of_run_gen = gen
-    best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
-    print("________________________")
-    print("Gen no.:", gen, ", Best:", round(max(fitnesses), 3), ", Mean:", round(mean(fitnesses), 3), ", Best sol.:")
-    best_of_run.print()
-    if best_of_run_f == 1:
-        print("Done")
-        break
 
-print("\n\n_________________________________________________\n"
-      "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
-      " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
-best_of_run.print()
+    # go evolution!
+    for gen in range(GENERATIONS):
+        nextgen_population = []
+        for i in range(POP_SIZE):
+            parent1 = selection(population, fitnesses)
+            parent2 = selection(population, fitnesses)
+            parent1.crossover(parent2)
+            parent1.mutation()
+            nextgen_population.append(parent1)
+        population = nextgen_population
+        fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
+
+        best_of_run_f = max(fitnesses)
+        best_of_run_gen = gen
+        best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+        print("________________________")
+        print("Gen no.:", gen, ", Best:", round(max(fitnesses), 3), ", Mean:", round(mean(fitnesses), 3), ", Best sol.:")
+        best_of_run.print()
+        if best_of_run_f == 1:
+            print("Done")
+            break
+
+    print("\n\n_________________________________________________\n"
+          "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
+          " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
+    best_of_run.print()
+
+
+if __name__ == "__main__":
+    main()
+
