@@ -241,6 +241,11 @@ class Tree:
                     self.parent = self.children[0].parent
                     self.children = self.children[0].children
 
+        if self.parent == div:
+            if self.children[1].parent == 1.0:
+                self.parent = self.children[0].parent
+                self.children = self.children[0].children
+
         if self.parent == power:
             if self.children[0].parent == 0.0:
                 self.parent = 0.0
@@ -419,7 +424,7 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    return sin(x) + x
+    return power(x, 0.5)
 
 
 def generate_dataset():  # generate 101 data points from target_func
@@ -463,6 +468,7 @@ def main():
         # dataset = load_database("data.csv")
         population = init_population(float)
         best_of_run = None
+        best_of_run_copy = None
         best_of_run_f = 0
         best_of_run_gen = 0
         fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
@@ -478,8 +484,8 @@ def main():
                 parent2 = selection(population, fitnesses)
                 parent1.crossover(parent2)
                 parent1.mutation()
-                if random() < 0.05:
-                    parent1.simplify()
+                # if random() < 0.01:
+                #     parent1.simplify()
                 nextgen_population.append(parent1)
             population = nextgen_population
             fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
@@ -490,15 +496,17 @@ def main():
             bests.append(best_of_run_f)
             best_of_run_gen = gen
             best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+            best_of_run_copy = deepcopy(best_of_run)
 
             # Apply dynamic rules
             # alter_rules(best_of_run_f, mean_of_run_f)
 
             # Summary
             print("________________________")
-            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5), ", Mean:", round(mean_of_run_f, 3), ", Best sol.:")
-            best_of_run.print()
+            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5), ", Mean:", round(mean_of_run_f, 3))
+            # best_of_run.print()
             best_of_run.simplify()
+            print("Simplified best sol.:")
             best_of_run.print()
 
             # Plotting
@@ -516,6 +524,9 @@ def main():
         print("\n\n_________________________________________________\n"
               "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
               " and has fitness of " + str(round(best_of_run_f, 5)) + ".")
+        print("Sol.:")
+        best_of_run_copy.print()
+        print("Simplified sol.:")
         best_of_run.print()
 
 
