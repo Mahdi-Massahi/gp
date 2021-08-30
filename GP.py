@@ -15,7 +15,7 @@ XO_RATE = 0.5  # crossover rate
 TOURNAMENT_SIZE = 50  # size of tournament for tournament selection
 GENERATIONS = 5000  # maximal number of generations to run evolution
 
-# seed(123456)
+# seed(12346)
 
 
 def add(x: float, y: float) -> float: return x + y
@@ -67,6 +67,7 @@ def set_terminals_type():
     for variable in VARIABLES_TUPLE:
         TERMINALS.append(variable[0])
         TERMINALS_TYPE.append(variable[1])
+        VARIABLES.append(variable[0])
 
 
 def get_parameter_types(function):
@@ -323,7 +324,7 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    return x**5 + 3*x
+    return x**sin(x) + 2*x
 
 
 def generate_dataset():  # generate 101 data points from target_func
@@ -343,53 +344,80 @@ def load_database(path):
     return data
 
 
+PROB_MUTATION_S = [PROB_MUTATION]
+XO_RATE_S = [XO_RATE]
+
+
+def alter_rules(best, mean):
+    global PROB_MUTATION
+    PROB_MUTATION = best-mean/2
+    PROB_MUTATION_S.append(PROB_MUTATION)
+    plt.plot(np.array(PROB_MUTATION_S), color='greenyellow', linewidth=0.5, label="P-Mutation")
+
+    global XO_RATE
+    XO_RATE = (1-best*0.9)
+    XO_RATE_S.append(XO_RATE)
+    plt.plot(np.array(XO_RATE_S), color='cornflowerblue', linewidth=0.5, label="P-Crossover")
+
+    global TOURNAMENT_SIZE
+    TOURNAMENT_SIZE = int(50 * 1-best/0.5)
+
+
 def main():
-    dataset = generate_dataset()
-    # dataset = load_database("data.csv")
-    population = init_population(float)
-    best_of_run = None
-    best_of_run_f = 0
-    best_of_run_gen = 0
-    fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
-
-    bests = [0]
-    means = [0]
-
-    # go evolution!
-    for gen in range(GENERATIONS):
-        nextgen_population = []
-        for i in range(POP_SIZE):
-            parent1 = selection(population, fitnesses)
-            parent2 = selection(population, fitnesses)
-            parent1.crossover(parent2)
-            parent1.mutation()
-            nextgen_population.append(parent1)
-        population = nextgen_population
+        dataset = generate_dataset()
+        # dataset = load_database("data.csv")
+        population = init_population(float)
+        best_of_run = None
+        best_of_run_f = 0
+        best_of_run_gen = 0
         fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
 
-        best_of_run_f = max(fitnesses)
-        best_of_run_gen = gen
-        best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
-        print("________________________")
-        print("Gen no.:", gen, ", Best:", round(max(fitnesses), 3), ", Mean:", round(mean(fitnesses), 3), ", Best sol.:")
+        bests = [0]
+        means = [0]
+
+        # Evolution
+        for gen in range(GENERATIONS):
+            nextgen_population = []
+            for i in range(POP_SIZE):
+                parent1 = selection(population, fitnesses)
+                parent2 = selection(population, fitnesses)
+                parent1.crossover(parent2)
+                parent1.mutation()
+                nextgen_population.append(parent1)
+            population = nextgen_population
+            fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
+
+            best_of_run_f = max(fitnesses)
+            mean_of_run_f = mean(fitnesses)
+            means.append(mean_of_run_f)
+            bests.append(best_of_run_f)
+            best_of_run_gen = gen
+            best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+
+            # Apply dynamic rules
+            # alter_rules(best_of_run_f, mean_of_run_f)
+
+            # Summary
+            print("________________________")
+            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 3), ", Mean:", round(mean_of_run_f, 3), ", Best sol.:")
+            best_of_run.print()
+
+            # Plotting
+            plt.axhline(y=1, color='g', linewidth=0.5)
+            plt.ylim(0, 1.1)
+            plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
+            plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+            plt.pause(0.001)
+
+            if gen == 0:
+                plt.legend(loc=2)
+
+            if best_of_run_f == 1: break
+
+        print("\n\n_________________________________________________\n"
+              "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
+              " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
         best_of_run.print()
-
-        bests.append(best_of_run_f)
-        means.append(mean(fitnesses))
-
-        plt.ylim(0, 1)
-        plt.plot(np.array(bests), color='r')
-        plt.plot(np.array(means), color='b', linestyle='dotted')
-        plt.pause(0.1)
-
-        if best_of_run_f == 1:
-            print("Done")
-            break
-
-    print("\n\n_________________________________________________\n"
-          "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
-          " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
-    best_of_run.print()
 
 
 if __name__ == "__main__":
