@@ -428,16 +428,49 @@ def selection(population, fitnesses):  # select one individual using tournament 
 
 
 def fitness(individual, dataset):  # inverse mean absolute error over dataset normalized to [0,1]
-    return 1 / (1 + mean([abs(individual.eval(ds[0]) - ds[1]) for ds in dataset]))
+    res = []
+    y = []
+    x = []
+    des = []
+    for ds in dataset:
+        x.append(ds[0])
+        _y = individual.eval(ds[0])
+        y.append(_y)
+        des.append(ds[1])
+        res.append(_y - ds[1])
+
+    # res = [ - ds[1] for ds in dataset]
+    return 1 / (1 + mean(abs(np.array(res))))
+
+
+def plot_best(individual, dataset):  # inverse mean absolute error over dataset normalized to [0,1]
+    res = []
+    y = []
+    x = []
+    des = []
+    for ds in dataset:
+        x.append(ds[0])
+        _y = individual.eval(ds[0])
+        y.append(_y)
+        des.append(ds[1])
+        res.append(_y - ds[1])
+
+    plt.clf()
+    plt.plot(x, des)
+    plt.plot(x, y)
+    # res = [ - ds[1] for ds in dataset]
+    return 1 / (1 + mean(abs(np.array(res))))
 
 
 def target_func(x):
-    return power(x, 2)
+    return exp(sin(x)/x)
 
 
 def generate_dataset():  # generate 101 data points from target_func
     dataset = []
     for x in range(-100, 101, 2):
+        if x == 0:
+            continue
         x /= 10
         dataset.append([x, target_func(x)])
     return dataset
@@ -512,20 +545,23 @@ def main():
             # Summary
             print("________________________")
             print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5), ", Mean:", round(mean_of_run_f, 3))
-            # best_of_run.print()
+            best_of_run.print()
             best_of_run.simplify()
             print("Simplified best sol.:")
             best_of_run.print()
 
             # Plotting
-            plt.axhline(y=1, color='g', linewidth=0.5)
-            plt.ylim(0, 1.1)
-            plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
-            plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+            # plt.axhline(y=1, color='g', linewidth=0.5)
+            # plt.ylim(0, 1.1)
+            # plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
+            # plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+
+            plot_best(best_of_run, dataset)
             plt.pause(0.001)
 
             if gen == 0:
-                plt.legend(loc=2)
+                # plt.legend(loc=2)
+                pass
 
             if best_of_run_f == 1: break
 
@@ -536,6 +572,7 @@ def main():
         best_of_run_copy.print()
         print("Simplified sol.:")
         best_of_run.print()
+        input()
 
 
 if __name__ == "__main__":
