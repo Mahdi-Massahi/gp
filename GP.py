@@ -241,8 +241,16 @@ class Tree:
                     self.parent = self.children[0].parent
                     self.children = self.children[0].children
 
+        if self.parent == sub:
+            if self.children[1].parent == 0.0:
+                self.parent = self.children[0].parent
+                self.children = self.children[0].children
+
         if self.parent == div:
-            if self.children[1].parent == 1.0:
+            if self.children[0].parent == 0.0:
+                self.parent = 0.0
+                self.children = []
+            elif self.children[1].parent == 1.0:
                 self.parent = self.children[0].parent
                 self.children = self.children[0].children
 
@@ -424,7 +432,7 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    return power(x, 0.5)
+    return power(x, 2)
 
 
 def generate_dataset():  # generate 101 data points from target_func
