@@ -24,7 +24,7 @@ def mul(x: float, y: float) -> float: return x * y
 def div(x: float, y: float) -> float: return x/y if y != 0.0 else 1.0
 def sin(x: float) -> float: return math.sin(x)
 def cos(x: float) -> float: return math.cos(x)
-def log(x: float) -> float: return math.log(x) if x > 0 else 0
+def log(x: float) -> float: return math.log(x) if x > 0.0 else 0.0
 def if_else_b(cond: bool, on_true: bool, on_false: bool) -> bool: return on_true if cond else on_false
 def if_else_f(cond: bool, on_true: float, on_false: float) -> float: return on_true if cond else on_false
 def is_less_than(x: float, y: float) -> bool: return x < y
@@ -49,7 +49,8 @@ def power(x: float, p: float) -> float:
 
 
 FUNCTIONS = [add, sub, mul, div,
-             sin, cos, power, exp, log,
+             power,
+             sin, cos, exp, log,
              if_else_b, if_else_f, or_b, and_b,
              is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal]
 
@@ -114,6 +115,19 @@ class Tree:
     def __init__(self, parent=None, children=None):
         self.parent = parent
         self.children = children
+
+    def __eq__(self, other):
+        cnd_1 = self.parent == other.parent
+        cnd_2 = True
+
+        if self.children and other.children:
+            if len(self.children) == len(other.children):
+                for i in range(len(self.children)):
+                    if not self.children[i].__eq__(other.children[i]):
+                        cnd_2 = False
+                        break
+
+        return cnd_1 and cnd_2
 
     def node_label(self):
         if self.parent in FUNCTIONS:
@@ -199,13 +213,92 @@ class Tree:
                 tree.random_tree(grow, max_depth, depth=depth + 1, parent=self.parent, arg_index=i, pref_type=pref_type)
                 self.children.append(tree)
 
+    def simplify(self):
+
+        if self.children:
+            for child in self.children:
+                if child.parent in FUNCTIONS:
+                    child.simplify()
+
+        if self.parent == mul:
+            if Tree(0.0) in self.children:
+                self.parent = 0.0
+                self.children = []
+            elif Tree(1.0) in self.children:
+                if self.children[0].parent == 1.0:
+                    self.parent = self.children[1].parent
+                    self.children = self.children[1].children
+                else:
+                    self.parent = self.children[0].parent
+                    self.children = self.children[0].children
+
+        if self.parent == add:
+            if Tree(0.0) in self.children:
+                if self.children[0].parent == 0.0:
+                    self.parent = self.children[1].parent
+                    self.children = self.children[1].children
+                else:
+                    self.parent = self.children[0].parent
+                    self.children = self.children[0].children
+
+        if self.parent == power:
+            if self.children[0].parent == 0.0:
+                self.parent = 0.0
+                self.children = []
+            elif self.children[0].parent == 1.0:
+                self.parent = self.children[1].parent
+                self.children = self.children[1].children
+            elif self.children[1].parent == 0.0:
+                self.parent = 1.0
+                self.children = []
+            elif self.children[1].parent == 1.0:
+                self.parent = self.children[0].parent
+                self.children = self.children[0].children
+
+        if self.parent in [add, sub, mul, div, power, sin, cos, exp, log, or_b, and_b,
+                           is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal]:
+            has_variable = False
+            for child in self.children:
+                if child.parent in VARIABLES or child.parent in FUNCTIONS:
+                    has_variable = True
+                    break
+            if not has_variable:
+                if len(self.children) == 2:
+                    self.parent = self.parent(self.children[0].parent,
+                                              self.children[1].parent)
+                if len(self.children) == 1:
+                    self.parent = self.parent(self.children[0].parent)
+
+        if self.parent == and_b:
+            for child in self.children:
+                if not child.parent:
+                    self.parent = False
+                    self.children = []
+
+        if self.parent == or_b:
+            for child in self.children:
+                if child.parent:
+                    self.parent = True
+                    self.children = []
+
+        if self.parent in [if_else_f, if_else_b]:
+            if self.children[0].parent in [True, False]:
+                if self.children[0].parent:
+                    self.parent = self.children[1].parent
+                    if self.children[1].children:
+                        self.children = self.children[1].children
+                else:
+                    self.parent = self.children[2].parent
+                    if self.children[2].children:
+                        self.children = self.children[2].children
+
     def mutation(self):
         if random() < PROB_MUTATION:
             if random() >= 0.5:
                 if self.parent in FUNCTIONS:
-                    func_index = indexes_of_in(self.parent, FUNCTIONS)
-                    func_ret_type = FUNCTIONS_RETURNS_TYPE[func_index[0]]
-                    self.random_tree(grow=True, max_depth=2, pref_type=func_ret_type)
+                    self.random_tree(grow=True,
+                                     max_depth=2,  # randint(MIN_DEPTH, MAX_DEPTH),
+                                     pref_type=self.type())
             else:
                 if self.children:
                     arg_index = randint(0, len(self.children)-1)
@@ -216,8 +309,10 @@ class Tree:
     def type(self):
         if self.parent in FUNCTIONS:
             return FUNCTIONS_RETURNS_TYPE[indexes_of_in(self.parent, FUNCTIONS)[0]]
-        else:
+        elif self.parent in TERMINALS:
             return TERMINALS_TYPE[indexes_of_in(self.parent, TERMINALS)[0]]
+        else:
+            return type(self.parent)
 
     def crossover(self, other):
         if random() < XO_RATE:
@@ -324,12 +419,12 @@ def fitness(individual, dataset):  # inverse mean absolute error over dataset no
 
 
 def target_func(x):
-    return x**sin(x) + 2*x
+    return sin(x) + x
 
 
 def generate_dataset():  # generate 101 data points from target_func
     dataset = []
-    for x in range(100, 101, 2):
+    for x in range(-100, 101, 2):
         x /= 10
         dataset.append([x, target_func(x)])
     return dataset
@@ -338,8 +433,8 @@ def generate_dataset():  # generate 101 data points from target_func
 def load_database(path):
     data = []
     with open('data.csv', newline='\n') as csvfile:
-        spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-        for row in spamreader:
+        reader = csv.reader(csvfile, delimiter=',', quotechar='|')
+        for row in reader:
             data.append([float(row[0]), float(row[1])])
     return data
 
@@ -383,6 +478,8 @@ def main():
                 parent2 = selection(population, fitnesses)
                 parent1.crossover(parent2)
                 parent1.mutation()
+                if random() < 0.05:
+                    parent1.simplify()
                 nextgen_population.append(parent1)
             population = nextgen_population
             fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
@@ -399,7 +496,9 @@ def main():
 
             # Summary
             print("________________________")
-            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 3), ", Mean:", round(mean_of_run_f, 3), ", Best sol.:")
+            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5), ", Mean:", round(mean_of_run_f, 3), ", Best sol.:")
+            best_of_run.print()
+            best_of_run.simplify()
             best_of_run.print()
 
             # Plotting
@@ -416,10 +515,23 @@ def main():
 
         print("\n\n_________________________________________________\n"
               "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
-              " and has fitness of " + str(round(best_of_run_f, 3)) + ".")
+              " and has fitness of " + str(round(best_of_run_f, 5)) + ".")
         best_of_run.print()
 
 
 if __name__ == "__main__":
     main()
+    pass
 
+
+# sub(mul(sub(0.0, x), cos(3.141592653589793)), mul(exp(mul(-2.0, 0.0)), sub(add(0.0, 0.0), sin(x))))
+# tree = Tree(sub, [Tree(mul, [Tree(sub, [Tree(0.1), Tree('x')]),
+#                              Tree(cos, [Tree(math.pi)])]),
+#                   Tree(mul, [Tree(exp, [Tree(mul, [Tree(-2.0), Tree(0.0)])]),
+#                              Tree(sub, [Tree(add, [Tree(0.0), Tree(0.0)]),
+#                                         Tree(sin, [Tree('x')])])])])
+# tree = Tree(mul, [Tree(2.5), Tree(2)])
+# tree.print()
+#
+# tree.simplify()
+# tree.print()
