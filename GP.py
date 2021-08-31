@@ -11,8 +11,8 @@ POP_SIZE = 100  # population size
 MIN_DEPTH = 3  # minimal initial random tree depth
 MAX_DEPTH = 6  # maximal initial random tree depth
 PROB_MUTATION = 0.95  # per-node mutation probability
-XO_RATE = 0.5  # crossover rate
-TOURNAMENT_SIZE = 50  # size of tournament for tournament selection
+XO_RATE = 0.3  # crossover rate
+TOURNAMENT_SIZE = 5  # size of tournament for tournament selection
 GENERATIONS = 5000  # maximal number of generations to run evolution
 
 # seed(12346)
@@ -51,8 +51,9 @@ def power(x: float, p: float) -> float:
 FUNCTIONS = [add, sub, mul, div,
              power,
              sin, cos, exp, log,
-             if_else_b, if_else_f, or_b, and_b,
-             is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal]
+             # if_else_b, if_else_f, or_b, and_b,
+             # is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal,
+             ]
 
 VARIABLES_TUPLE = [('x', float)]
 VARIABLES = []
@@ -133,7 +134,10 @@ class Tree:
         if self.parent in FUNCTIONS:
             return self.parent.__name__
         else:
-            return str(self.parent)
+            if type(self.parent) == float:
+                return str(round(self.parent, 2))
+            else:
+                return str(self.parent)
 
     def print(self):
         print(self.tostring())
@@ -427,43 +431,27 @@ def selection(population, fitnesses):  # select one individual using tournament 
     return deepcopy(population[tournament[tournament_fitnesses.index(max(tournament_fitnesses))]])
 
 
-def fitness(individual, dataset):  # inverse mean absolute error over dataset normalized to [0,1]
-    res = []
+def fitness(individual, dataset):
+    return 1 / (1 + mean([power(individual.eval(ds[0]) - ds[1], 2) for ds in dataset]))
+
+
+def plot_best(individual, dataset):
     y = []
     x = []
-    des = []
+    target = []
     for ds in dataset:
         x.append(ds[0])
-        _y = individual.eval(ds[0])
-        y.append(_y)
-        des.append(ds[1])
-        res.append(_y - ds[1])
-
-    # res = [ - ds[1] for ds in dataset]
-    return 1 / (1 + mean(abs(np.array(res))))
-
-
-def plot_best(individual, dataset):  # inverse mean absolute error over dataset normalized to [0,1]
-    res = []
-    y = []
-    x = []
-    des = []
-    for ds in dataset:
-        x.append(ds[0])
-        _y = individual.eval(ds[0])
-        y.append(_y)
-        des.append(ds[1])
-        res.append(_y - ds[1])
+        y.append(individual.eval(ds[0]))
+        target.append(ds[1])
 
     plt.clf()
-    plt.plot(x, des)
-    plt.plot(x, y)
-    # res = [ - ds[1] for ds in dataset]
-    return 1 / (1 + mean(abs(np.array(res))))
+    plt.plot(x, target, label="Target")
+    plt.plot(x, y, label="Best")
 
 
 def target_func(x):
-    return exp(sin(x)/x)
+    # return exp(sin(x)/x)
+    return x*sin(x) + x + math.e
 
 
 def generate_dataset():  # generate 101 data points from target_func
@@ -525,45 +513,61 @@ def main():
                 parent2 = selection(population, fitnesses)
                 parent1.crossover(parent2)
                 parent1.mutation()
-                # if random() < 0.01:
+                # if random() < 0.005:
                 #     parent1.simplify()
                 nextgen_population.append(parent1)
             population = nextgen_population
             fitnesses = [fitness(population[i], dataset) for i in range(POP_SIZE)]
 
-            best_of_run_f = max(fitnesses)
-            mean_of_run_f = mean(fitnesses)
-            means.append(mean_of_run_f)
-            bests.append(best_of_run_f)
-            best_of_run_gen = gen
-            best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
-            best_of_run_copy = deepcopy(best_of_run)
-
             # Apply dynamic rules
             # alter_rules(best_of_run_f, mean_of_run_f)
 
-            # Summary
-            print("________________________")
-            print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5), ", Mean:", round(mean_of_run_f, 3))
-            best_of_run.print()
-            best_of_run.simplify()
-            print("Simplified best sol.:")
-            best_of_run.print()
+            if max(fitnesses) > best_of_run_f:
+                best_of_run_f = max(fitnesses)
+                mean_of_run_f = mean(fitnesses)
+                means.append(mean_of_run_f)
+                bests.append(best_of_run_f)
+                best_of_run_gen = gen
+                best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+                best_of_run_copy = deepcopy(best_of_run)
+
+                # Summary
+                print("________________________")
+                print("Gen no.:", gen, ", Best:", round(best_of_run_f, 5))
+                best_of_run.print()
+                best_of_run.simplify()
+                print("Simplified best sol.:")
+                buff = best_of_run.tostring()
+                print(buff)
+
+                fig2 = plt.figure(2, figsize=[8, 4])
+                plot_best(best_of_run, dataset)
+                plt.title(buff, fontsize=8)
+                plt.legend(loc=2)
+
+            else:
+                best_of_run_f = max(fitnesses)
+                mean_of_run_f = mean(fitnesses)
+                means.append(mean_of_run_f)
+                bests.append(best_of_run_f)
+                best_of_run_gen = gen
+                best_of_run = deepcopy(population[fitnesses.index(max(fitnesses))])
+                best_of_run_copy = deepcopy(best_of_run)
 
             # Plotting
-            # plt.axhline(y=1, color='g', linewidth=0.5)
-            # plt.ylim(0, 1.1)
-            # plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
-            # plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+            fig1 = plt.figure(1, figsize=[6, 4])
+            plt.title(f"Gen no.: {gen}, Error:{round(1-best_of_run_f, 5)}", fontsize=10)
+            plt.axhline(y=1, color='g', linewidth=0.5)
+            plt.ylim(0, 1.1)
+            plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
+            plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+            if gen == 0:
+                plt.legend(loc=2)
 
-            plot_best(best_of_run, dataset)
             plt.pause(0.001)
 
-            if gen == 0:
-                # plt.legend(loc=2)
-                pass
-
-            if best_of_run_f == 1: break
+            if best_of_run_f == 1.0:
+                break
 
         print("\n\n_________________________________________________\n"
               "END OF RUN\nBest attained at gen " + str(best_of_run_gen) +
@@ -572,7 +576,7 @@ def main():
         best_of_run_copy.print()
         print("Simplified sol.:")
         best_of_run.print()
-        input()
+        plt.show()
 
 
 if __name__ == "__main__":
