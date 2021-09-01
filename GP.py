@@ -457,12 +457,8 @@ def target_func(x):
     # return exp(sin(x)/x)
     # return x*sin(x) + x + math.e
     # return -123.4
-    # return sin(x) + x + 1
+    return sin(x) + x + 1
     # return x * log(x)
-    if x > 0:
-        return sin(2*x)
-    else:
-        return sin(x) * 2
 
 
 def generate_dataset():  # generate 101 data points from target_func
