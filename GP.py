@@ -7,12 +7,12 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 
-POP_SIZE = 100  # population size
+POP_SIZE = 250  # population size
 MIN_DEPTH = 3  # minimal initial random tree depth
 MAX_DEPTH = 6  # maximal initial random tree depth
 PROB_MUTATION = 0.95  # per-node mutation probability
-XO_RATE = 0.3  # crossover rate
-TOURNAMENT_SIZE = 5  # size of tournament for tournament selection
+XO_RATE = 0.2  # crossover rate
+TOURNAMENT_SIZE = 75  # size of tournament for tournament selection
 GENERATIONS = 5000  # maximal number of generations to run evolution
 
 # seed(12346)
@@ -52,12 +52,16 @@ FUNCTIONS = [add, sub, mul, div,
              power,
              sin, cos, exp, log,
              # if_else_b, if_else_f, or_b, and_b,
-             # is_less_than, is_less_than_or_equal, is_grater_than, is_grater_than_or_equal,
+             # is_less_than, is_less_than_or_equal,
+             # is_grater_than, is_grater_than_or_equal,
              ]
 
 VARIABLES_TUPLE = [('x', float)]
 VARIABLES = []
-TERMINALS = [-2.0, -1.0, 0.0, 1.0, 2.0, math.pi, math.e, True, False]
+TERMINALS = [-2.0, -1.0, 0.0, 1.0,
+             math.pi, math.e, 1.0,
+             True, False,
+             ]
 FUNCTIONS_RETURNS_TYPE = []
 FUNCTIONS_PARAMS_TYPE = []
 TERMINALS_TYPE = []
@@ -432,7 +436,7 @@ def selection(population, fitnesses):  # select one individual using tournament 
 
 
 def fitness(individual, dataset):
-    return 1 / (1 + mean([power(individual.eval(ds[0]) - ds[1], 2) for ds in dataset]))
+    return 1 / (1 + sum([power(individual.eval(ds[0]) - ds[1], 2) for ds in dataset]))
 
 
 def plot_best(individual, dataset):
@@ -451,7 +455,14 @@ def plot_best(individual, dataset):
 
 def target_func(x):
     # return exp(sin(x)/x)
-    return x*sin(x) + x + math.e
+    # return x*sin(x) + x + math.e
+    # return -123.4
+    # return sin(x) + x + 1
+    # return x * log(x)
+    if x > 0:
+        return sin(2*x)
+    else:
+        return sin(x) * 2
 
 
 def generate_dataset():  # generate 101 data points from target_func
@@ -566,7 +577,7 @@ def main():
 
             plt.pause(0.001)
 
-            if best_of_run_f == 1.0:
+            if round(best_of_run_f, 4) == 1.0:
                 break
 
         print("\n\n_________________________________________________\n"
@@ -582,16 +593,3 @@ def main():
 if __name__ == "__main__":
     main()
     pass
-
-
-# sub(mul(sub(0.0, x), cos(3.141592653589793)), mul(exp(mul(-2.0, 0.0)), sub(add(0.0, 0.0), sin(x))))
-# tree = Tree(sub, [Tree(mul, [Tree(sub, [Tree(0.1), Tree('x')]),
-#                              Tree(cos, [Tree(math.pi)])]),
-#                   Tree(mul, [Tree(exp, [Tree(mul, [Tree(-2.0), Tree(0.0)])]),
-#                              Tree(sub, [Tree(add, [Tree(0.0), Tree(0.0)]),
-#                                         Tree(sin, [Tree('x')])])])])
-# tree = Tree(mul, [Tree(2.5), Tree(2)])
-# tree.print()
-#
-# tree.simplify()
-# tree.print()
