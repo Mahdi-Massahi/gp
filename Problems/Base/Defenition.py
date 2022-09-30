@@ -1,6 +1,10 @@
 from math import pi, e, sqrt, pow, sin, cos
 
+import matplotlib.pyplot as plt
+import numpy as np
 import csv
+
+from .Hyperparameters import IS_MAXIMIZATION
 
 
 # In this script, one should define the functions which are 
@@ -82,17 +86,25 @@ def evaluate_individual(individual=None, append_pid=False):
 
 # This function is called before the GP run
 def internal_before_start():
-    pass
+    fig1 = plt.figure(1)
 
 # This function is called at the end of the each iteration
 # It can be used to save records or plot
 def internal_before_iteration(bests, means, individuals):
+    # saving the fitness records on file
     with open('temp/Fitness.csv', 'w', encoding='UTF8', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(["Index", "Best", "Mean", "Individual"])
         for i in range(len(bests)):
             writer.writerow([i, bests[i], means[i], str(individuals[i])])
 
+    # plotting the fitness values
+    best_of_run = max(bests) if IS_MAXIMIZATION else min(bests)
+    plt.title(f"Gen no.: {len(bests)}, Fitness:{round(1-best_of_run, 5)}", fontsize=10)
+    plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
+    plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
+    plt.pause(0.001)
+
 # This function is called after the GP run
 def internal_before_end():
-    pass
+    plt.show()
