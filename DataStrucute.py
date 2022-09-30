@@ -1,9 +1,15 @@
-import Problem as Problem
-
+import inspect
 from typing import List
-from random import random, randint, seed
+from random import random, randint
 from copy import deepcopy
 
+from Problems.config import *
+
+VARIABLES = []
+TERMINALS = []
+FUNCTIONS_RETURNS_TYPE = []
+FUNCTIONS_PARAMS_TYPE = []
+TERMINALS_TYPE = []
 
 class Tree:
     def __init__(self, parent=None, children=None):
@@ -18,7 +24,7 @@ class Tree:
         return str_1 == str_2
 
     def __str__(self) -> str:
-        if self.parent in Problem.FUNCTIONS:
+        if self.parent in FUNCTIONS:
             parameters = ""
             if self.children:
                 for child in self.children:
@@ -32,7 +38,7 @@ class Tree:
         return str(self)
 
     def node_label(self) -> str:
-        if self.parent in Problem.FUNCTIONS:
+        if self.parent in FUNCTIONS:
             return self.parent.__name__
         else:
             if type(self.parent) == float:
@@ -66,7 +72,7 @@ class Tree:
                 self.children[child_i].draw(prefix + " "*(len(label)), is_corner=is_corner, debug=debug)
 
     def size(self) -> int:
-        if self.parent in Problem.TERMINALS:
+        if self.parent in TERMINALS:
             return 1
         else:
             if self.children:
@@ -88,10 +94,10 @@ class Tree:
             return max(child_depth) 
         
     def type(self) -> type:
-        if self.parent in Problem.FUNCTIONS:
-            return Problem.FUNCTIONS_RETURNS_TYPE[Problem.indexes_of_in(self.parent, Problem.FUNCTIONS)[0]]
-        elif self.parent in Problem.TERMINALS:
-            return Problem.TERMINALS_TYPE[Problem.indexes_of_in(self.parent, Problem.TERMINALS)[0]]
+        if self.parent in FUNCTIONS:
+            return FUNCTIONS_RETURNS_TYPE[self.indexes_of_in(self.parent, FUNCTIONS)[0]]
+        elif self.parent in TERMINALS:
+            return TERMINALS_TYPE[self.indexes_of_in(self.parent, TERMINALS)[0]]
         else:
             return type(self.parent)
 
@@ -100,40 +106,40 @@ class Tree:
         # FUNCTIONS_PARAMS_TYPE = [ ..., [ ..., type_2, ... ], ... ] <- parent
         # FUNCTIONS_RETURN_Type = [ ..., function, ... ] <- random_function
         if parent:
-            func_index = Problem.FUNCTIONS.index(parent)
-            arg_type = Problem.FUNCTIONS_PARAMS_TYPE[func_index][arg_index]
+            func_index = FUNCTIONS.index(parent)
+            arg_type = FUNCTIONS_PARAMS_TYPE[func_index][arg_index]
             # selected random function most have the same return type as arg_type
-            allowed_funcs_index = Problem.indexes_of_in(arg_type, Problem.FUNCTIONS_RETURNS_TYPE)
+            allowed_funcs_index = self.indexes_of_in(arg_type, FUNCTIONS_RETURNS_TYPE)
             if allowed_funcs_index:
-                self.parent = Problem.FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
+                self.parent = FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
             else:
                 self.add_random_terminal(parent, arg_index)
 
         else:
             if pref_type is not None:
-                allowed_funcs_index = Problem.indexes_of_in(pref_type, Problem.FUNCTIONS_RETURNS_TYPE)
+                allowed_funcs_index = self.indexes_of_in(pref_type, FUNCTIONS_RETURNS_TYPE)
                 if allowed_funcs_index:
-                    self.parent = Problem.FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
+                    self.parent = FUNCTIONS[allowed_funcs_index[randint(0, len(allowed_funcs_index) - 1)]]
                 else:
                     self.add_random_terminal(parent, arg_index, pref_type)
             else:
                 # in case of root
-                self.parent = Problem.FUNCTIONS[randint(0, len(Problem.FUNCTIONS) - 1)]
+                self.parent = FUNCTIONS[randint(0, len(FUNCTIONS) - 1)]
 
     def add_random_terminal(self, parent, arg_index=0, pref_type=None):
         if pref_type is None:
-            func_index = Problem.FUNCTIONS.index(parent)
-            pref_type = Problem.FUNCTIONS_PARAMS_TYPE[func_index][arg_index]
-        allowed_terminal_index = Problem.indexes_of_in(pref_type, Problem.TERMINALS_TYPE)
+            func_index = FUNCTIONS.index(parent)
+            pref_type = FUNCTIONS_PARAMS_TYPE[func_index][arg_index]
+        allowed_terminal_index = self.indexes_of_in(pref_type, TERMINALS_TYPE)
         if allowed_terminal_index:
-            self.parent = Problem.TERMINALS[allowed_terminal_index[randint(0, len(allowed_terminal_index) - 1)]]
+            self.parent = TERMINALS[allowed_terminal_index[randint(0, len(allowed_terminal_index) - 1)]]
         else:
             self.add_random_function(parent, arg_index)
 
     def generate_random_terminal(self):
-        allowed_terminal_index = Problem.indexes_of_in(self.type(), Problem.TERMINALS_TYPE)
+        allowed_terminal_index = self.indexes_of_in(self.type(), TERMINALS_TYPE)
         if allowed_terminal_index:
-            self.parent = Problem.TERMINALS[allowed_terminal_index[randint(0, len(allowed_terminal_index) - 1)]]
+            self.parent = TERMINALS[allowed_terminal_index[randint(0, len(allowed_terminal_index) - 1)]]
 
     def random_tree(self, full, max_depth, depth=1, parent=None, arg_index=0, pref_type=None):
         if depth == 1:
@@ -150,8 +156,8 @@ class Tree:
             self.add_random_terminal(parent, arg_index)
 
         # if parent is choosed to be a function, fill the children too,
-        if self.parent in Problem.FUNCTIONS:
-            return_and_parameter_types = Problem.get_return_and_parameters_types(self.parent)
+        if self.parent in FUNCTIONS:
+            return_and_parameter_types = self.get_return_and_parameters_types(self.parent)
             parameters_number = len(return_and_parameter_types) - 1
             self.children = []
             for i in range(parameters_number):
@@ -168,7 +174,7 @@ class Tree:
     def get_terminal_ids(self, ids, __id=None):
         if __id is None:
             __id = [0]
-        if self.parent in Problem.TERMINALS:
+        if self.parent in TERMINALS:
             ids.append(__id[0])
             return
         if self.children:
@@ -215,19 +221,19 @@ class Tree:
                     if __is_node_found[0] == True: return
 
     def mutation(self):
-        if random() < Problem.PROB_MUTATION:
+        if random() < PROB_MUTATION:
             mutation_point = randint(0, self.size()-1)
             self.search_node_id(node_id=mutation_point, action="mutate", args=[])
 
     def mutate(self):
-        max_allowed_depth = Problem.MAX_DEPTH-self.depth_index
+        max_allowed_depth = MAX_DEPTH-self.depth_index
         if max_allowed_depth > 0:
             self.random_tree(full=True if random() > 0.5 else False,
                             max_depth=randint(0, max_allowed_depth),
                             pref_type=self.type())
 
     def crossover(self, other):
-        if random() < Problem.PROB_CROSSOVER:
+        if random() < PROB_CROSSOVER:
             crossover_point = randint(0, self.size()-1)
             self.search_node_id(node_id=crossover_point, action="cross", args=[other])
 
@@ -236,7 +242,7 @@ class Tree:
         subtrees = []
         other.get_type_matching_subtrees(subtree_type, subtrees)
         if len(subtrees) > 0:
-            max_allowed_depth = Problem.MAX_DEPTH - self.depth_index 
+            max_allowed_depth = MAX_DEPTH - self.depth_index 
             allowed_subtrees = [subtree for subtree in subtrees if subtree.depth() <= max_allowed_depth]
             if len(allowed_subtrees) > 0:
                 subtree_other = deepcopy(allowed_subtrees[randint(0, len(allowed_subtrees)-1)])
@@ -244,7 +250,7 @@ class Tree:
                 self.children = subtree_other.children
 
     def permutation(self):
-        if random() < Problem.PROB_PERMUTATION:
+        if random() < PROB_PERMUTATION:
             ids = []
             self.get_terminal_ids(ids)
             permutation_point = ids[randint(0, len(ids)-1)]
@@ -262,14 +268,49 @@ class Tree:
             for child in self.children:
                 child.get_type_matching_subtrees(subtree_type, subtrees)
 
+    @staticmethod
+    def indexes_of_in(item, space: list):
+        start = 0
+        length = len(space)
+        positions = []
+        while start <= length:
+            try:
+                index = space.index(item, start)
+                if type(space[index]) == type(item):
+                    positions.append(index)
+                start = index + 1
 
+            except ValueError:
+                break
 
-if __name__ == "__main__":
+        return positions if len(positions) > 0 else None
 
-    seed_rand = randint(1, 1000000)
-    seed(seed_rand)
-    print("Seed:", seed_rand)
+    @staticmethod
+    def get_return_and_parameters_types(function):
+        parameter_types = []
+        annotations = inspect.getfullargspec(function).annotations
+        args_names = list(annotations.keys())
+        for parameter in args_names:
+            parameter_types.append(annotations.get(parameter))
 
-    p1 = Tree()
-    p1.random_tree(full=True, max_depth=5, pref_type=List[float])
-    p1.draw()
+        return parameter_types
+
+    @staticmethod
+    def set_terminals_type():
+        for terminal in TERMINALS:
+            TERMINALS_TYPE.append(type(terminal))
+        for variable in TERMINAL_TUPLES:
+            TERMINALS.append(variable[0])
+            TERMINALS_TYPE.append(variable[1])
+            VARIABLES.append(variable[0])
+
+    @staticmethod
+    def set_functions_type():
+        for func in FUNCTIONS:
+            types = Tree.get_return_and_parameters_types(func)
+            FUNCTIONS_RETURNS_TYPE.append(types[0])
+            types.reverse()
+            types.pop()
+            types.reverse()
+            FUNCTIONS_PARAMS_TYPE.append(types)
+
