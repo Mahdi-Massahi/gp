@@ -38,7 +38,8 @@ def init_population(output_type: type):
 def selection(population, fitness_values):  
     tournament = [randint(0, len(population) - 1) for _ in range(TOURNAMENT_SIZE)]
     tournament_fitness_values = [fitness_values[tournament[i]] for i in range(TOURNAMENT_SIZE)]
-    return deepcopy(population[tournament[tournament_fitness_values.index(max(tournament_fitness_values))]])
+    selected = max(tournament_fitness_values) if IS_MAXIMIZATION else min(tournament_fitness_values)
+    return deepcopy(population[tournament[tournament_fitness_values.index(selected)]])
 
 
 def fitness(individual):
@@ -93,7 +94,7 @@ def evolve():
             else [fitness(population[i]) for i in range(POP_SIZE)]
 
         fitness_values_p = fitness_values.copy()
-        fitness_values_p.sort(reverse= not IS_MAXIMIZATION)
+        fitness_values_p.sort(reverse=not IS_MAXIMIZATION)
 
         i = 0
         elites = []
@@ -104,7 +105,7 @@ def evolve():
             if elite not in elites:
                 elites.append(elite)
                 nextgen_population.append(elite)
-                print(f"\nEli {len(elites)} (Ind {elite_inedx}):\t[{round(elite_fitness, 2)}]\t\t{str(elite)}")
+                print(f"\nEli. {len(elites)} (Ind. {elite_inedx}):\t[{round(elite_fitness, 2)}]\t\t{str(elite)}")
                 elite.draw()
             i += 1
         print()
@@ -121,9 +122,9 @@ def evolve():
         if not DO_PARALLEL:
             order = [x for _, x in sorted(zip(fitness_values, range(0, POP_SIZE)), reverse=IS_MAXIMIZATION)]
             for i in order: 
-                print(f"Ind {i}:\t[{round(fitness_values[i], 2)}]\t\t{str(population[i])}")
+                print(f"Ind. {i}:\t[{round(fitness_values[i], 2)}]\t\t{str(population[i])}")
 
-        best_of_run_f = max(fitness_values)
+        best_of_run_f = max(fitness_values) if IS_MAXIMIZATION else min(fitness_values)
         mean_of_run_f = mean(fitness_values)
         means.append(mean_of_run_f)
         bests.append(best_of_run_f)
@@ -142,6 +143,25 @@ def evolve():
 
         # refill the population
         population = nextgen_population
+
+        # check termination criteria
+        if (gen >= STOP_ON_UNCHANGED):
+            last_bests_fitnesses = np.array(bests[-STOP_ON_UNCHANGED:])
+            if sqrt(np.sum(np.power(last_bests_fitnesses - np.mean(last_bests_fitnesses), 2))) < STOP_ON_UNCHANGED_TOLERANCE:
+                print(f"\nStopped by unchanged tolerance over {STOP_ON_UNCHANGED} generations.")
+                break
+
+        if not IS_MAXIMIZATION and best_of_run_f <= STOP_ON_UNCHANGED_TOLERANCE:
+            print(f"\nStopped by fitness value tolerance at generation {gen}.")
+            break
+        
+        if IS_MAXIMIZATION and best_of_run_f >= STOP_ON_UNCHANGED_TOLERANCE:
+            print(f"\nStopped by fitness value tolerance at generation {gen}.")
+            break
+
+    else:
+        print(f"\nStoped by maximum generations at generation {GENERATIONS}.")
+        
 
 
     print("\n_________________________________________________\n"
