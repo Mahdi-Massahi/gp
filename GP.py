@@ -71,10 +71,9 @@ def evolve():
     best_of_run = None
     best_of_run_f = 0
     best_of_run_gen = 0
-    best_of_run_str = ""
     bests = []
     means = []
-    best_individuals_str = []
+    best_individuals = []
     population = []
 
     # Evolution
@@ -130,8 +129,7 @@ def evolve():
         bests.append(best_of_run_f)
         best_of_run_gen = gen
         best_of_run = elites[0]
-        best_of_run_str = str(best_of_run)
-        best_individuals_str.append(best_of_run_str)
+        best_individuals.append(best_of_run)
 
         # Summary
         print()
@@ -139,7 +137,7 @@ def evolve():
         print(f"Best fitness:\t[{round(best_of_run_f, 2)}]")
 
         # Recording
-        internal_before_iteration(bests, means, best_individuals_str)
+        internal_before_iteration(bests, means, best_individuals)
 
         # refill the population
         population = nextgen_population
@@ -168,7 +166,7 @@ def evolve():
           "Best attained at gen " + str(best_of_run_gen) +
           " and has fitness of " + str(round(best_of_run_f, 2)) + ".")
     print("Sol.:")
-    print(best_of_run_str)
+    print(best_of_run)
     best_of_run.draw()
     print()
 
