@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import csv
 
-from .Hyperparameters import IS_MAXIMIZATION
+from .Hyperparameters import IS_MAXIMIZATION, TARGET_DATASET_SIZE
 
 
 # In this script, one should define the functions which are 
@@ -33,7 +33,9 @@ def ASIGN(pos1: float, pos2: float, pos3: float, pos4: float) -> ROOT:
 # 2. Include those which are needed here in this list 
 # Note: make sure to provide a sufficent set of functions
 FUNCTIONS = [
-    ADD, MUL, SUB,
+    ADD, 
+    MUL, 
+    # SUB,
     ASIGN,
     ]
 
@@ -50,10 +52,10 @@ TERMINAL_TUPLES = [
     ('c', float),
     ('d', float),
     # matrix 2
+    ('w', float),
     ('x', float),
     ('y', float),
     ('z', float),
-    ('w', float),
 
     # Literals
     # None 
@@ -64,22 +66,29 @@ TERMINAL_TUPLES = [
 # In other words, it is the type of the root of the trees which GP provides
 ROOT_TYPE = ROOT
 
+TARGET_DATASET = []
 
 # cerate custum target dataset by a custum formula
 def target_func(mat1, mat2):
-    return list(np.matmul(np.array(mat1), np.array(mat2)))
+    return np.matmul(np.array(mat1), np.array(mat2))
 
 def generate_dataset():
     dataset = []
-    for _ in range(5):
-        mat1 = np.random.rand(2, 2)
-        mat2 = np.random.rand(2, 2)
+    for _ in range(TARGET_DATASET_SIZE):
+        mat1 = np.round(np.random.rand(2, 2)*10) + 2
+        mat2 = np.round(np.random.rand(2, 2)*10) + 2
         dataset.append([mat1, mat2, target_func(mat1, mat2)])
+    
+    print("Traget Dataset is:") 
+    for case in dataset:
+        print("\nMatrix 1:")
+        print(case[0])
+        print("\nMatrix 2:")
+        print(case[1])
+        print("\nMatrix 1 x Matrix 2:")
+        print(case[2])
+
     return dataset
-
-TARGET_DATASET = generate_dataset()
-
-
 
 # Evaluation function 
 def eval(individual, mat1, mat2) -> np.ndarray:
@@ -95,10 +104,10 @@ def eval(individual, mat1, mat2) -> np.ndarray:
     elif individual.parent == 'b': return mat1[0][1]
     elif individual.parent == 'c': return mat1[1][0]
     elif individual.parent == 'd': return mat1[1][1]
-    elif individual.parent == 'x': return mat2[0][0]
-    elif individual.parent == 'y': return mat2[0][1]
-    elif individual.parent == 'z': return mat2[1][0]
-    elif individual.parent == 'w': return mat2[1][1]
+    elif individual.parent == 'w': return mat2[0][0]
+    elif individual.parent == 'x': return mat2[0][1]
+    elif individual.parent == 'y': return mat2[1][0]
+    elif individual.parent == 'z': return mat2[1][1]
     else:
         return individual.parent
 
@@ -107,12 +116,15 @@ def evaluate_individual(individual=None, append_pid=False):
     sses = []
     for test_case in TARGET_DATASET:
         residual = np.array(eval(individual, test_case[0], test_case[1])) - test_case[2]
-        sses.append(abs(sqrt(np.sum(np.power(residual, 2)))))
+        error = abs(sqrt(np.sum(np.power(residual, 2))))
+        sses.append(error if error < 1000 else 1000)
     return sum(sses)
 
 
 # This function is called before the GP run
 def internal_before_start():
+    global TARGET_DATASET
+    TARGET_DATASET = generate_dataset()
     fig1 = plt.figure(1)
 
 # This function is called at the end of the each iteration
