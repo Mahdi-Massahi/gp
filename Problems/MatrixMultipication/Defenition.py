@@ -18,44 +18,13 @@ from .Hyperparameters import IS_MAXIMIZATION
 #    make sure the defined function covers the desired domain.
 #    return a "safty value" in case of evaluation failure 
 # 3. Feel free to use any name as function arguments
-def ADD(x1: float, x2: float) -> float: return x1+x2
-def SUB(x1: float, x2: float) -> float: return x1-x2
-def MUL(x1: float, x2: float) -> float: return x1*x2
-
-def ADD_AT_BY(
-        x1: float,
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return x1+mat2[row_x2][col_x2]
-
-def SUB_AT_BY(
-        x1: float,
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return x1-mat2[row_x2][col_x2]
-
-def MUL_AT_BY(
-        x1: float,
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return x1*mat2[row_x2][col_x2]
-
-def ADD_AT(
-        row_x1: int, col_x1: int, mat1: List[float],
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return mat1[row_x1][col_x1]+mat2[row_x2][col_x2]
-
-def SUB_AT(
-        row_x1: int, col_x1: int, mat1: List[float],
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return mat1[row_x1][col_x1]-mat2[row_x2][col_x2]
-
-def MUL_AT(
-        row_x1: int, col_x1: int, mat1: List[float],
-        row_x2: int, col_x2: int, mat2: List[float]) -> float: 
-    return mat1[row_x1][col_x1]*mat2[row_x2][col_x2]
+def ADD(x1: float, x2: float) -> float: return x1 + x2
+def MUL(x1: float, x2: float) -> float: return x1 * x2
+def SUB(x1: float, x2: float) -> float: return x1 - x2
 
 class ROOT: pass
 def ASIGN(pos1: float, pos2: float, pos3: float, pos4: float) -> ROOT: 
     return [[pos1, pos2], [pos3, pos4]]
-
 
 
 # FUNCTIONS holds the function set of the GP problem
@@ -64,8 +33,7 @@ def ASIGN(pos1: float, pos2: float, pos3: float, pos4: float) -> ROOT:
 # 2. Include those which are needed here in this list 
 # Note: make sure to provide a sufficent set of functions
 FUNCTIONS = [
-    # ADD, SUB, MUL,
-    ADD_AT, MUL_AT, SUB_AT,
+    ADD, MUL, SUB,
     ASIGN,
     ]
 
@@ -76,12 +44,19 @@ FUNCTIONS = [
 # Make sure to provide a sufficent set of functions
 TERMINAL_TUPLES = [
     # Variables
-    ('mat1', List[float]),
-    ('mat2', List[float]),
+    # matrix 1
+    ('a', float),
+    ('b', float),
+    ('c', float),
+    ('d', float),
+    # matrix 2
+    ('x', float),
+    ('y', float),
+    ('z', float),
+    ('w', float),
 
-    # Literals 
-    (0, int), 
-    (1, int), 
+    # Literals
+    # None 
 ]
 
 
@@ -96,7 +71,7 @@ def target_func(mat1, mat2):
 
 def generate_dataset():
     dataset = []
-    for _ in range(1):
+    for _ in range(5):
         mat1 = np.random.rand(2, 2)
         mat2 = np.random.rand(2, 2)
         dataset.append([mat1, mat2, target_func(mat1, mat2)])
@@ -115,10 +90,15 @@ def eval(individual, mat1, mat2) -> np.ndarray:
                 res = eval(child, mat1, mat2)
                 children_result.append(res)
             return individual.parent(*children_result)
-    if individual.parent == 'mat1':
-        return mat1
-    elif individual.parent == 'mat2':
-        return mat2
+
+    if individual.parent == 'a': return mat1[0][0]
+    elif individual.parent == 'b': return mat1[0][1]
+    elif individual.parent == 'c': return mat1[1][0]
+    elif individual.parent == 'd': return mat1[1][1]
+    elif individual.parent == 'x': return mat2[0][0]
+    elif individual.parent == 'y': return mat2[0][1]
+    elif individual.parent == 'z': return mat2[1][0]
+    elif individual.parent == 'w': return mat2[1][1]
     else:
         return individual.parent
 
@@ -147,6 +127,7 @@ def internal_before_iteration(bests, means, individuals):
 
     # plotting the fitness values
     best_of_run = max(bests) if IS_MAXIMIZATION else min(bests)
+    plt.cla()
     plt.title(f"Gen no.: {len(bests)}, Fitness:{round(best_of_run, 5)}", fontsize=10)
     plt.plot(np.array(bests), color='r', linewidth=1, label="Best")
     plt.plot(np.array(means), color='b', linewidth=1, label="Mean")
