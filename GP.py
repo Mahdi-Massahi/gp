@@ -1,9 +1,10 @@
 import multiprocessing as mp
 
 from DataStrucute import *
-from random import randint, seed
+from random import randint
 from copy import deepcopy
 from statistics import mean
+from beepy import beep
 
 
 INDIVIDUAL_TABLE = []
@@ -108,7 +109,7 @@ def evolve():
                     print(f"\nEli. {len(elites)} (Ind. {elite_inedx}):\t[{round(elite_fitness, 2)}]\t\t{str(elite)}")
                     elite.draw()
             i += 1
-        print()
+        if not SILENT: print()
 
         for i in range(POP_SIZE-len(elites)):
             parent1 = selection(population, fitness_values)
@@ -150,11 +151,11 @@ def evolve():
                 print(f"\nStopped by unchanged tolerance over {STOP_ON_UNCHANGED} generations.")
                 break
 
-        if not IS_MAXIMIZATION and best_of_run_f <= STOP_ON_UNCHANGED_TOLERANCE:
+        if not IS_MAXIMIZATION and best_of_run_f <= STOP_ON_TOLERANCE:
             print(f"\nStopped by fitness value tolerance at generation {gen}.")
             break
         
-        if IS_MAXIMIZATION and best_of_run_f >= STOP_ON_UNCHANGED_TOLERANCE:
+        if IS_MAXIMIZATION and best_of_run_f >= STOP_ON_TOLERANCE:
             print(f"\nStopped by fitness value tolerance at generation {gen}.")
             break
 
@@ -162,7 +163,7 @@ def evolve():
         print(f"\nStoped by maximum generations at generation {GENERATIONS}.")
         
 
-
+    beep(sound="ping")
     print("\n_________________________________________________\n"
           "Best attained at gen " + str(best_of_run_gen) +
           " and has fitness of " + str(round(best_of_run_f, 2)) + ".")
