@@ -104,8 +104,9 @@ def evolve():
             if elite not in elites:
                 elites.append(elite)
                 nextgen_population.append(elite)
-                print(f"\nEli. {len(elites)} (Ind. {elite_inedx}):\t[{round(elite_fitness, 2)}]\t\t{str(elite)}")
-                elite.draw()
+                if not SILENT:
+                    print(f"\nEli. {len(elites)} (Ind. {elite_inedx}):\t[{round(elite_fitness, 2)}]\t\t{str(elite)}")
+                    elite.draw()
             i += 1
         print()
 
@@ -118,7 +119,7 @@ def evolve():
             nextgen_population.append(parent1)
         
         # Print individuals
-        if not DO_PARALLEL:
+        if not DO_PARALLEL and not SILENT:
             order = [x for _, x in sorted(zip(fitness_values, range(0, POP_SIZE)), reverse=IS_MAXIMIZATION)]
             for i in order: 
                 print(f"Ind. {i}:\t[{round(fitness_values[i], 2)}]\t\t{str(population[i])}")

@@ -1,3 +1,5 @@
+SILENT = True                       # do not print or draw any indvidual
+
 IS_MAXIMIZATION = False            # Is this a maximization problem? 
 
 DO_PARALLEL = True                 # Execute individual evaluation's process in parallel 

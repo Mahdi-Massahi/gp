@@ -1,3 +1,5 @@
+SILENT = True                       # do not print or draw any indvidual
+
 IS_MAXIMIZATION = False             # Is this a maximization problem? 
 
 DO_PARALLEL = True                 # Execute individual evaluation's process in parallel 
@@ -13,6 +15,6 @@ STOP_ON_TOLERANCE = 0.001            # stop if the best fitness value crosses th
 
 MAX_DEPTH = 12                      # maximum tree depth
 
-PROB_MUTATION = 0.05                # per-node mutation probability
+PROB_MUTATION = 0.1                # per-node mutation probability
 PROB_CROSSOVER = 0.8               # crossover rate
-PROB_PERMUTATION = 0.2             # permutation on terminals
+PROB_PERMUTATION = 0.3             # permutation on terminals
